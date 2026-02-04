@@ -385,6 +385,21 @@ const App: React.FC = () => {
     return w.SpeechRecognition || w.webkitSpeechRecognition || null;
   };
 
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+  const getSpeechErrorMessage = (eventError: string | undefined): string => {
+    const err = (eventError || '').toLowerCase();
+    if (err === 'not-allowed') return '请允许麦克风权限后重试。';
+    if (err === 'no-speech') return '未检测到语音，请靠近麦克风再说一遍。';
+    if (err === 'network') return '网络问题，请检查网络后重试。';
+    if (err === 'audio-capture') return '无法使用麦克风，请检查设备权限。';
+    if (err === 'aborted') return '录音已取消。';
+    if (isIOS) {
+      return '当前设备上语音识别可能不可用，建议用电脑或安卓手机的 Chrome 打开本页面。';
+    }
+    return '语音识别出错，请稍后重试或更换为 Chrome / Edge 浏览器。';
+  };
+
   const startRecording = async () => {
     if (isRecording || isProcessing || (pendingTasks && pendingTasks.length > 0)) return;
     setError(null);
@@ -420,8 +435,9 @@ const App: React.FC = () => {
 
       recognition.onerror = (event: any) => {
         console.error(event);
-        setError('语音识别出错，请稍后重试或更换浏览器。');
-        setHint('可以重新按住按钮，再说一遍。');
+        const msg = getSpeechErrorMessage(event?.error);
+        setError(msg);
+        setHint(isIOS ? '建议用电脑或安卓 Chrome 打开本页面使用语音功能。' : '可以重新按住按钮，再说一遍。');
         setIsRecording(false);
         setIsProcessing(false);
         recognitionRef.current = null;
@@ -664,6 +680,10 @@ const App: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              <p className="text-[11px] text-slate-400 mt-1">
+                语音功能推荐：电脑 Chrome、安卓 Chrome；iPhone 上可能无法使用。
+              </p>
             </div>
           )}
 
